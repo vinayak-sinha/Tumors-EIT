@@ -1,9 +1,9 @@
-function interactive_tumor_phantom()
+function gridsetup()
     % Create figure
-    clf; % Clear the current figure
-    hold on; % Retain current plot when adding new plots
-    axis equal; % Set equal scaling for both axes
-    box on; % Enable the box around the axes
+    clf;
+    hold on;
+    axis equal;
+    box on;
     f = figure('Name', 'Interactive Tumor Phantom', ...
                'NumberTitle', 'off', ...
                'Position', [200 200 800 600]);
@@ -13,10 +13,10 @@ function interactive_tumor_phantom()
     spacing = 5;
     phantom_radius = 35;
 
-    % UI slider limits
+    % UI input limits
     xlim_slider = [-phantom_radius, phantom_radius];
     ylim_slider = [-phantom_radius, phantom_radius];
-    rlim_slider = [2, 15];  % Radius from 2 mm to 15 mm
+    rlim_slider = [2, 15];
 
     % Default tumor values
     tumor = struct('x', 0, 'y', 0, 'r', 5);
@@ -25,41 +25,53 @@ function interactive_tumor_phantom()
     ax = axes('Parent', f, 'Position', [0.3, 0.15, 0.65, 0.75]);
     update_plot();
 
-    % --- Sliders ---
-    % X position
-    uicontrol(f, 'Style', 'text', 'String', 'X Position', ...
+    % Input labels and boxes
+    uicontrol(f, 'Style', 'text', 'String', 'X Position (mm)', ...
               'Position', [30 500 100 20]);
-    sx = uicontrol(f, 'Style', 'slider', ...
-              'Min', xlim_slider(1), 'Max', xlim_slider(2), ...
-              'Value', tumor.x, ...
-              'Position', [30 480 200 20], ...
-              'Callback', @(src, ~) update_value('x', src.Value));
+    ex = uicontrol(f, 'Style', 'edit', ...
+              'String', num2str(tumor.x), ...
+              'Position', [30 480 200 25]);
 
-    % Y position
-    uicontrol(f, 'Style', 'text', 'String', 'Y Position', ...
+    uicontrol(f, 'Style', 'text', 'String', 'Y Position (mm)', ...
               'Position', [30 430 100 20]);
-    sy = uicontrol(f, 'Style', 'slider', ...
-              'Min', ylim_slider(1), 'Max', ylim_slider(2), ...
-              'Value', tumor.y, ...
-              'Position', [30 410 200 20], ...
-              'Callback', @(src, ~) update_value('y', src.Value));
+    ey = uicontrol(f, 'Style', 'edit', ...
+              'String', num2str(tumor.y), ...
+              'Position', [30 410 200 25]);
 
-    % Radius
     uicontrol(f, 'Style', 'text', 'String', 'Diameter (mm)', ...
               'Position', [30 360 100 20]);
-    sr = uicontrol(f, 'Style', 'slider', ...
-              'Min', rlim_slider(1), 'Max', rlim_slider(2), ...
-              'Value', tumor.r, ...
-              'Position', [30 340 200 20], ...
-              'Callback', @(src, ~) update_value('r', src.Value));
+    er = uicontrol(f, 'Style', 'edit', ...
+              'String', num2str(tumor.r), ...
+              'Position', [30 340 200 25]);
 
-    % --- Nested function to update values and redraw ---
-    function update_value(field, val)
-        tumor.(field) = val;
+    % Update button
+    uicontrol(f, 'Style', 'pushbutton', 'String', 'Update Tumor', ...
+              'Position', [30 290 200 30], ...
+              'Callback', @update_button_callback);
+
+    % --- Callback for Update Button ---
+    function update_button_callback(~, ~)
+        x = str2double(ex.String);
+        y = str2double(ey.String);
+        r = str2double(er.String);
+
+        if any(isnan([x y r]))
+            errordlg('Please enter valid numbers.', 'Input Error');
+            return;
+        end
+
+        % Clamp values to limits
+        tumor.x = max(min(x, xlim_slider(2)), xlim_slider(1));
+        tumor.y = max(min(y, ylim_slider(2)), ylim_slider(1));
+        tumor.r = max(min(r, rlim_slider(2)), rlim_slider(1));
+
         update_plot();
+
+        % Make tumor struct available to run_simulation.m
+        assignin('base', 'tumor', tumor);
     end
 
-    % --- Nested function to update the plot ---
+    % --- Function to redraw the plot ---
     function update_plot()
         cla(ax); hold(ax, 'on'); axis(ax, 'equal'); box(ax, 'on');
         set(ax, 'XLim', [-phantom_radius, phantom_radius], ...
@@ -67,12 +79,12 @@ function interactive_tumor_phantom()
         title(ax, sprintf('Tumor Center: (%.1f, %.1f), Diameter: %.1f mm', ...
                           tumor.x, tumor.y, tumor.r));
 
-        % Draw boundary
+        % Draw circular phantom boundary
         theta = linspace(0, 2*pi, 200);
         plot(ax, phantom_radius*cos(theta), ...
                   phantom_radius*sin(theta), 'k', 'LineWidth', 1);
 
-        % Grid points
+        % Draw grid points
         [x_grid, y_grid] = meshgrid( ...
             linspace(-spacing*(grid_size-1)/2, spacing*(grid_size-1)/2, grid_size), ...
             linspace(-spacing*(grid_size-1)/2, spacing*(grid_size-1)/2, grid_size));
