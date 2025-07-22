@@ -9,14 +9,14 @@ function gridsetup()
                'Position', [200 200 800 600]);
 
     % Base phantom parameters
-    grid_size = 7;
-    spacing = 5;
+    grid_size = 35;
+    spacing = 1;
     phantom_radius = 35;
 
     % UI input limits
     xlim_slider = [-phantom_radius, phantom_radius];
     ylim_slider = [-phantom_radius, phantom_radius];
-    rlim_slider = [2, 15];
+    rlim_slider = [2, 30];
 
     % Default tumor values
     tumor = struct('x', 0, 'y', 0, 'r', 5);
@@ -49,7 +49,7 @@ function gridsetup()
               'Position', [30 290 200 30], ...
               'Callback', @update_button_callback);
 
-    % --- Callback for Update Button ---
+    % Callback for Update Button
     function update_button_callback(~, ~)
         x = str2double(ex.String);
         y = str2double(ey.String);
@@ -68,10 +68,19 @@ function gridsetup()
         update_plot();
 
         % Make tumor struct available to run_simulation.m
-        assignin('base', 'tumor', tumor);
+        % assignin('base', 'tumor', tumor);
+
+        current_uA = 100;  % Or let user choose later
+        disp('Solving voltage field with updated tumor...');
+        try
+            Vdiff = solvevoltage(tumor, current_uA);
+            fprintf('Voltage difference between electrodes: %.6f V\n', Vdiff);
+        catch err
+            disp(['Error in solve_voltage: ', err.message]);
+        end
     end
 
-    % --- Function to redraw the plot ---
+    % Function to redraw the plot
     function update_plot()
         cla(ax); hold(ax, 'on'); axis(ax, 'equal'); box(ax, 'on');
         set(ax, 'XLim', [-phantom_radius, phantom_radius], ...
