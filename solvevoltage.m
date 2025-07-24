@@ -103,6 +103,8 @@ function Vdiff = solvevoltage(tumor, current_uA)
     V1 = U(movable_idx);
     V2 = U(fixed_idx);
     Vdiff = V2 - V1;
+    fprintf('Voltage at fixed electrode: %.6f V\n', V2);
+    fprintf('Voltage at movable electrode: %.6f V\n', V1);
 
     % Plot voltage contours
     figure('Name','Voltage Field with Tumor');
